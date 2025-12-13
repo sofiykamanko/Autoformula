@@ -36,6 +36,13 @@ class FeatureTypeDetection:
             - 'pandas_dtype' : technical dtype from pandas
             - 'detected_type' : inferred semantic type
 
+        Examples
+        --------
+        >>> feature_types = detect_feature_types(df)
+        >>> feature_types.head()
+    
+        >>> detect_feature_types(df, detect_mixed=True).query("mixed_type")
+
         '''
 
         def find_mixed_type_columns(df):
@@ -138,6 +145,13 @@ class FeatureTypeDetection:
     -------
     DataFrame
         Subset of columns with dtype–semantic mismatches (includes mixed_type if present).
+
+    Examples
+    --------
+    >>> types = detect_feature_types(df, detect_mixed=True)
+    >>> type_mismatch(types)
+
+    >>> type_mismatch(types).query("detected_type == 'categorical'")
     """
 
 
@@ -185,6 +199,15 @@ class FeatureTypeDetection:
         Returns
         -------
         DataFrame — copy of df with applied conversions.
+
+        Examples
+        --------
+        >>> types = detect_feature_types(df, detect_mixed=True)
+        >>> df_clean = handle_selected_columns(
+        ...     df,
+        ...     types_df=types,
+        ...     selected=["age", "gender", "income"]
+        ... )
         """
 
 
@@ -247,6 +270,7 @@ class FeatureTypeDetection:
                 print(f"Error converting '{col}': {e}")
 
         return df_out
+
     
     @staticmethod
     def feature_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -268,7 +292,12 @@ class FeatureTypeDetection:
             - is_constant : True if all values are identical
             - dominant_ratio : share of the most frequent value
             - dominant_value : the most frequent value itself
-
+        Examples
+        --------
+        >>> summary = feature_summary(df)
+        >>> summary.loc["age"]
+    
+        >>> summary.query("missing_rate > 0.2")
         '''
 
         if df.empty:
