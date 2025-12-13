@@ -381,6 +381,15 @@ class FeatureAnalysis:
             - feature
             - separability_score
             - perm_p_value (if `run_permutation=True`)
+
+        Examples
+        --------
+        >>> sep = compute_separability(X, y)
+        >>> sep.head()
+    
+        >>> sep = compute_separability(X, y, run_permutation=False)
+        >>> sep.columns
+        Index(['feature', 'separability_score'], dtype='object')
         """
 
         # helpers 
@@ -495,15 +504,13 @@ class FeatureAnalysis:
             - test : statistical test applied
             - p_value : p-value of the corresponding test
 
-
         Examples
         --------
-        >>> sep = compute_separability(X, y)
-        >>> sep.head()
-        >>>
-        >>> sep = compute_separability(X, y, run_permutation=False)
-        >>> "perm_p_value" in sep.columns
-        False
+        >>> impact = compute_impact(X, y)
+        >>> impact.head()
+    
+        >>> impact.loc[0, ["feature", "impact_score", "impact_metric"]]
+    
         """
 
         results = []
@@ -629,6 +636,14 @@ class FeatureAnalysis:
             - impact_score
             - overlap_score
             - final_score
+
+        Examples
+        --------
+        >>> quality = compute_feature_quality(X, y)
+        >>> quality.head()
+    
+        >>> weights = {"separability": 2.0, "impact": 1.0, "overlap": 0.5}
+        >>> quality = compute_feature_quality(X, y, weights=weights)
         """
 
         if weights is None:
