@@ -31,6 +31,12 @@ class FeatureAnalysis:
         -------
         dict[str, pandas.DataFrame]
             Correlation matrices: {"pearson", "spearman", "kendall"}.
+        
+        Examples
+        --------
+        >>> corrs = check_correlations(df)
+        >>> corrs["pearson"].loc["age", "income"]
+        0.42
         """
 
         numeric_df = df_num.select_dtypes(include=["float64", "int64", "bool"])
@@ -48,6 +54,8 @@ class FeatureAnalysis:
             "spearman": spearman_corr,
             "kendall": kendall_corr
         }
+
+
     
     @staticmethod
     def plot_correlation_heatmaps(corrs_dict, figsize=(30, 10), annot_size=12):
@@ -74,6 +82,12 @@ class FeatureAnalysis:
         -------
         None
             Displays correlation heatmaps using matplotlib/seaborn.
+
+        Examples
+        --------
+        >>> corrs = check_correlations(df)
+        >>> plot_correlation_heatmaps(corrs, figsize=(20, 6), annot_size=10)
+
         '''
 
         corr_matrices = [
@@ -100,6 +114,8 @@ class FeatureAnalysis:
         plt.tight_layout()
         plt.show()
 
+
+    
     @staticmethod
     def cramers_v_matrix(df: pd.DataFrame, show_plot: bool = True):
         """
@@ -116,6 +132,15 @@ class FeatureAnalysis:
         -------
         DataFrame
             Symmetric matrix of Cramérs V values.
+
+        Examples
+        --------
+        >>> V = cramers_v_matrix(df)
+        >>> V.loc["gender", "country"]
+        0.27
+        >>>
+        >>> cramers_v_matrix(df, show_plot=False)
+        
         """
 
         df_cat = df.select_dtypes(include=["object", "category", "bool"]).copy()
@@ -195,6 +220,17 @@ class FeatureAnalysis:
             "feature_overlap": pd.DataFrame,
             "pairwise_overlap": pd.DataFrame | None
             }
+
+        Examples
+        --------
+        >>> # Compute feature-level overlap scores
+        >>> result = compute_overlap(df, top_k=3)
+        >>> result["feature_overlap"].head()
+        
+        >>> # Skip returning the full pairwise overlap table
+        >>> result = compute_overlap(df, return_pairwise=False)
+        >>> result["pairwise_overlap"]
+        None
         """
 
         #helper functions
@@ -458,6 +494,16 @@ class FeatureAnalysis:
             - impact_metric : metric used to compute the effect size
             - test : statistical test applied
             - p_value : p-value of the corresponding test
+
+
+        Examples
+        --------
+        >>> sep = compute_separability(X, y)
+        >>> sep.head()
+        >>>
+        >>> sep = compute_separability(X, y, run_permutation=False)
+        >>> "perm_p_value" in sep.columns
+        False
         """
 
         results = []
