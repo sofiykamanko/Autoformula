@@ -37,6 +37,12 @@ class SanitizationEngine:
         Returns
         -------
         DataFrame — cleaned (and optionally sampled) dataset.
+
+        Notes
+        -----
+        - Stratified sampling is applied only if `target` is provided, `stratify=True`,
+          and the target contains more than one unique value.
+        - Column duplication is detected by exact equality across all rows.
         '''
 
         print(f"Initial dataset shape: {df.shape}")
