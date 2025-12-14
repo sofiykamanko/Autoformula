@@ -16,35 +16,65 @@ class SanitizationEngine:
         self.random_state = random_state
 
     def preprocess_dataset(self, df: pd.DataFrame) -> pd.DataFrame:
-        '''
-
-        Remove duplicate rows/columns and optionally sample the dataset.
-
-        1. Drop duplicate rows.
-        2. Drop duplicate columns (identical across all rows).
-        3. Optionally sample `sample_rows` rows:
-        - Stratified by `target` if enabled and possible,
-        - Otherwise random.
-
+        """
+        Clean a dataset by removing duplicate rows and columns, with optional sampling.
+    
+        This function performs basic dataset sanitization steps that are commonly
+        required before feature analysis or modeling:
+    
+        1. Removes fully duplicated rows.
+        2. Removes duplicated columns (columns with identical values across all rows).
+        3. Optionally samples a fixed number of rows, using stratified sampling
+           if a target column is provided.
+    
         Parameters
         ----------
-        df : DataFrame
-        target : str or None — column for stratified sampling
-        sample_rows : int or None — number of rows to sample
-        stratify : bool — preserve class proportions when sampling
-        random_state : int — seed
-
+        df : pandas.DataFrame
+            Input dataset to be sanitized.
+    
+        target : str or None, default=None
+            Name of the target column used for stratified sampling.
+            If None, random sampling is applied.
+    
+        sample_rows : int or None, default=None
+            Number of rows to sample from the dataset.
+            If None or greater than the dataset size, no sampling is performed.
+    
+        stratify : bool, default=True
+            Whether to preserve class proportions during sampling.
+            Applied only if `target` is provided and has more than one unique value.
+    
+        random_state : int, default=42
+            Random seed used for reproducible sampling.
+    
         Returns
         -------
-        DataFrame — cleaned (and optionally sampled) dataset.
-
-        Notes
-        -----
-        - Stratified sampling is applied only if `target` is provided, `stratify=True`,
-          and the target contains more than one unique value.
-        - Column duplication is detected by exact equality across all rows.
-        '''
-
+        pandas.DataFrame
+            A cleaned copy of the dataset with duplicates removed and
+            optional sampling applied.
+    
+        Examples
+        --------
+        Basic usage without sampling:
+    
+        >>> df_clean = preprocess_dataset(df)
+    
+        Stratified sampling with a target column:
+    
+        >>> df_clean = preprocess_dataset(
+        ...     df,
+        ...     target="label",
+        ...     sample_rows=5000
+        ... )
+    
+        Random sampling without stratification:
+    
+        >>> df_clean = preprocess_dataset(
+        ...     df,
+        ...     sample_rows=1000,
+        ...     stratify=False
+        ... )
+        """
         print(f"Initial dataset shape: {df.shape}")
 
         dup_rows = df.duplicated().sum()
