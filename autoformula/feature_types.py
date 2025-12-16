@@ -9,34 +9,40 @@ class FeatureTypeDetection:
     @staticmethod
     def detect_feature_types(df: pd.DataFrame, min_success: float = 0.9, detect_mixed: bool = False) -> pd.DataFrame:
 
-        '''
-        Detects broad semantic type of each column:
-            - numeric - integers / floats or string columns mostly convertible to numbers (default min_success=0.9)
-            - categorical - discrete values with low unique count
-            - datetime - pandas datetime dtype
-            - bool - boolean dtype or simple Y/N, 0/1 encodings
-            - text - high-cardinality free text
+        """
+    Infer high-level semantic feature types for DataFrame columns.
 
-        Parameters
-        ----------
-        df : Input dataset for feature type detection (can be used cleaned df = output of preprocess_dataset() function )
+    The function classifies each column into one of the following types:
+    numeric, categorical, datetime, bool, or text. Detection is based on
+    pandas dtypes, value distributions, cardinality, entropy, and
+    string-to-numeric convertibility.
 
-        min_success : float, optional (default=0.9)
-            Minimum proportion of successfully converted values (for string-to-numeric casting) required to treat an object
-            column as numeric.
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataset for feature type inference.
+    min_success : float, default=0.9
+        Minimum fraction of successfully converted values required to
+        treat an object column as numeric.
+    detect_mixed : bool, default=False
+        If True, flags columns containing a mixture of numeric-like and
+        non-numeric values.
 
-        detect_mixed : bool, optional (default=False)
-            If True, flags columns that contain a mix of numeric-looking and text values.
+    Returns
+    -------
+    pandas.DataFrame
+        Summary table with inferred feature types containing:
+        - column : column name
+        - pandas_dtype : original pandas dtype
+        - detected_type : inferred semantic type
+        - mixed_type : boolean flag (only if detect_mixed=True)
 
-        Returns
-        -------
-        pd.DataFrame
-            A summary df with the following columns:
-            - 'column' : column name
-            - 'pandas_dtype' : technical dtype from pandas
-            - 'detected_type' : inferred semantic type
-
-        '''
+    Examples
+    --------
+    >>> detect_feature_types(df)
+    >>> detect_feature_types(df, min_success=0.8)
+    >>> detect_feature_types(df, detect_mixed=True)
+    """
 
         def find_mixed_type_columns(df):
             """Returns a list of column names where 10–90% of entries look numeric."""
@@ -122,22 +128,28 @@ class FeatureTypeDetection:
     @staticmethod
     def type_mismatch(types_df):
         """
-        Return columns where pandas dtypes conflict with detected semantic types.
-
-        Checks:
-        - object dtype but semantic type ≠ 'text'
-        - numeric dtype but semantic type == 'categorical'
-
+        Identify columns with conflicts between pandas dtypes and semantic types.
+    
+        Flags cases where the technical pandas dtype contradicts the inferred
+        semantic meaning of a feature, such as object columns detected as
+        non-text or numeric columns detected as categorical.
+    
         Parameters
         ----------
-        types_df : DataFrame
-            Output of detect_feature_types(), must contain
+        types_df : pandas.DataFrame
+            Output of detect_feature_types(). Must contain the columns
             ['column', 'pandas_dtype', 'detected_type'].
-
+    
         Returns
         -------
-        DataFrame
-            Subset of columns with dtype–semantic mismatches (includes mixed_type if present).
+        pandas.DataFrame
+            Subset of columns with dtype–semantic mismatches. Includes
+            'mixed_type' if present in the input.
+    
+        Examples
+        --------
+        >>> types = detect_feature_types(df, detect_mixed=True)
+        >>> type_mismatch(types)
         """
 
 
@@ -168,25 +180,34 @@ class FeatureTypeDetection:
         numeric_threshold: float = 0.6
         ) -> pd.DataFrame:
         """
-        Convert only selected columns to their semantic types, including mixed-type handling.
-
-        Logic:
-        - For mixed-type columns: if numeric_fraction > numeric_threshold - convert to numeric,
-        else - convert to categorical.
-        - For normal columns: convert based on detected_type (bool, categorical, numeric).
-
+        Convert selected columns to their inferred semantic types.
+    
+        Applies type conversions only to specified columns based on
+        detect_feature_types() output. Mixed-type columns are resolved
+        using a numeric fraction threshold.
+    
         Parameters
         ----------
-        df : DataFrame — input dataset.
-        types_df : DataFrame — output of detect_feature_types().
-        selected : list[str] — columns to convert.
-        numeric_threshold : float — cutoff for mixed-type numeric detection.
-
+        df : pandas.DataFrame
+            Input dataset.
+        types_df : pandas.DataFrame
+            Output of detect_feature_types().
+        selected : list[str]
+            Columns to convert.
+        numeric_threshold : float, default=0.6
+            Minimum numeric fraction required to convert mixed-type columns
+            to numeric; otherwise converted to categorical.
+    
         Returns
         -------
-        DataFrame — copy of df with applied conversions.
+        pandas.DataFrame
+            Copy of the dataset with applied type conversions.
+    
+        Examples
+        --------
+        >>> types = detect_feature_types(df, detect_mixed=True)
+        >>> df_fixed = handle_selected_missmatch(df, types, selected=["age", "gender"])
         """
-
 
         df_out = df.copy()
 
@@ -247,29 +268,38 @@ class FeatureTypeDetection:
                 print(f"Error converting '{col}': {e}")
 
         return df_out
+
     
     @staticmethod
     def feature_summary(df: pd.DataFrame) -> pd.DataFrame:
 
-        '''
-        Returns a DataFrame indexed by feature names with summary statistics.
-
+        """
+        Compute basic per-feature summary statistics.
+    
+        Generates a compact overview of each column including uniqueness,
+        missing values, dominance, and constancy, useful for quick
+        dataset profiling and feature quality checks.
+    
         Parameters
         ----------
-        df: Input dataset for feature summery (can be used df_out = output of handle_selected_columns() function).
-
+        df : pandas.DataFrame
+            Input dataset.
+    
         Returns
         -------
-        pd.DataFrame
-            Summary df with:
-            - dtype : pandas data type of the feature
-            - n_unique : number of unique non-null values
-            - missing_rate : fraction of missing values
-            - is_constant : True if all values are identical
-            - dominant_ratio : share of the most frequent value
-            - dominant_value : the most frequent value itself
-
-        '''
+        pandas.DataFrame
+            Feature-level summary indexed by column name with:
+            - dtype
+            - n_unique
+            - missing_rate
+            - is_constant
+            - dominant_ratio
+            - dominant_value
+    
+        Examples
+        --------
+        >>> feature_summary(df)
+        """
 
         if df.empty:
             return pd.DataFrame(columns=["n_unique", "missing_rate", "is_constant", "dominant_ratio", "dominant_value"])
