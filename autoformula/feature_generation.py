@@ -16,30 +16,35 @@ class FeatureMixing:
         epsilon: float = 1e-6,
         random_state: int = 42
     ) -> pd.DataFrame:
+        
         """
-        Generate unary and binary numeric feature combinations.
-
-        The function creates common non-linear transformations for numeric features
-        (e.g. log, square root, ranking) and pairwise interactions between randomly
-        selected feature pairs (e.g. products, ratios, differences).
-
+        Generate non-linear and interaction-based numeric feature combinations.
+    
+        Creates common unary transformations (log, sqrt, square, scaling, ranking)
+        and pairwise interactions (products, ratios, differences) for numeric features.
+        Binary interactions are randomly sampled to limit feature explosion.
+    
         Parameters
         ----------
         df : pandas.DataFrame
             Input dataset.
-        max_pairs : int, optional
-            Maximum number of random feature pairs used for binary interactions.
-        epsilon : float, optional
-            Small constant to ensure numerical stability in divisions and scaling.
-        random_state : int, optional
-            Random seed controlling feature pair sampling.
-
+        max_pairs : int, default=50
+            Maximum number of feature pairs used for binary interactions.
+        epsilon : float, default=1e-6
+            Small constant for numerical stability.
+        random_state : int, default=42
+            Random seed controlling pair sampling.
+    
         Returns
         -------
         pandas.DataFrame
-            Extended DataFrame containing the original features and newly generated
-            feature combinations.
+            Dataset extended with generated feature combinations.
+    
+        Examples
+        --------
+        >>> df_aug = generate_feature_combinations(df)
         """
+        
         np.random.seed(random_state)
 
         df_base = df.copy()
@@ -75,7 +80,8 @@ class FeatureMixing:
 
         return pd.concat([df_base, pd.DataFrame(new_features)], axis=1)
 
-
+    
+    @staticmethod
     def generate_custom_feature_combinations(
         df: pd.DataFrame,
         unary_ops: dict[str, callable] | None = None,
@@ -84,48 +90,37 @@ class FeatureMixing:
         random_state: int = 42
     ) -> pd.DataFrame:
         """
-        Generate custom numeric feature combinations using user-defined operations.
-
+        Generate numeric feature combinations using custom user-defined operations.
+    
         Applies arbitrary unary transformations f(x) and binary interactions f(x1, x2)
-        to numeric features. Binary feature pairs are randomly sampled to limit feature
-        explosion. Invalid operations are skipped safely.
-
+        to numeric features. Binary feature pairs are randomly sampled to control
+        feature explosion. Invalid operations are safely skipped.
+    
         Parameters
         ----------
         df : pandas.DataFrame
             Input dataset.
-        unary_ops : dict[str, callable] or None, optional
+        unary_ops : dict[str, callable] or None, default=None
             Mapping of operation names to unary functions f(x).
-        binary_ops : dict[str, callable] or None, optional
+        binary_ops : dict[str, callable] or None, default=None
             Mapping of operation names to binary functions f(x1, x2).
-        max_pairs : int, optional
+        max_pairs : int, default=50
             Maximum number of feature pairs used for binary interactions.
-        random_state : int, optional
+        random_state : int, default=42
             Random seed controlling pair sampling.
-
+    
         Returns
         -------
         pandas.DataFrame
-            DataFrame extended with newly generated custom features.
-        
+            Dataset extended with generated custom feature combinations.
+    
         Examples
         --------
-        >>>unary_ops = {
-            "log": lambda x: np.log(x + 1),
-            "zscore": lambda x: (x - x.mean()) / x.std()
-         }
-        >>>binary_ops = {
-             "ratio": lambda x1, x2: x1 / (x2 + 1e-6),
-             "diff": lambda x1, x2: x1 - x2
-         }
-        >>>df_new = generate_custom_feature_combinations(
-            df,
-            unary_ops=unary_ops,
-            binary_ops=binary_ops,
-            max_pairs=10,
-            random_state=42)
+        >>> unary_ops = {"log": lambda x: np.log(x + 1)}
+        >>> binary_ops = {"ratio": lambda x1, x2: x1 / (x2 + 1e-6)}
+        >>> generate_custom_feature_combinations(df, unary_ops, binary_ops)
         """
-
+        
         np.random.seed(random_state)
 
         df_base = df.copy()
@@ -133,7 +128,7 @@ class FeatureMixing:
 
         num_features = [c for c in df.columns if is_numeric_dtype(df[c])]
 
-        # ---------- unary ----------
+        #unary 
         if unary_ops:
             for col in num_features:
                 x = df[col]
@@ -143,7 +138,7 @@ class FeatureMixing:
                     except Exception:
                         continue  # safe skip
 
-        # ---------- binary ----------
+        #binary 
         if binary_ops:
             pairs = list(combinations(num_features, 2))
             np.random.shuffle(pairs)
