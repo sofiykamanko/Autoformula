@@ -1,4 +1,4 @@
-### Special Programming Languages
+# Special Programming Languages
 ## AutoFormula: library for feature engineering
 
 # Манько Софія, Головач Лук'яна
