@@ -17,10 +17,8 @@ from .feature_types import FeatureTypeDetection
 
 detect_feature_types = FeatureTypeDetection.detect_feature_types
 type_mismatch = FeatureTypeDetection.type_mismatch
-handle_selected_columns = FeatureTypeDetection.handle_selected_columns
+handle_selected_missmatch = FeatureTypeDetection.handle_selected_missmatch
 feature_summary = FeatureTypeDetection.feature_summary
-split_by_feature_type = FeatureTypeDetection.split_by_feature_type
-
 
 # Feature analysis
 from .analysis import FeatureAnalysis
