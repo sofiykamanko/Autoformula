@@ -20,17 +20,25 @@ class FeatureAnalysis:
     @staticmethod
     def check_correlations(df_num):
         """
-        Compute Pearson, Spearman, and Kendall correlation matrices for numeric features.
-
+        Compute correlation matrices for numeric features.
+    
+        Calculates Pearson, Spearman, and Kendall correlation matrices
+        using numeric and boolean columns only.
+    
         Parameters
         ----------
         df_num : pandas.DataFrame
-            Input DataFrame. Only numeric and boolean columns are used.
-
+            Input dataset.
+    
         Returns
         -------
         dict[str, pandas.DataFrame]
-            Correlation matrices: {"pearson", "spearman", "kendall"}.
+            Correlation matrices with keys: 'pearson', 'spearman', 'kendall'.
+    
+        Examples
+        --------
+        >>> corrs = check_correlations(df)
+        >>> corrs["spearman"]
         """
 
         numeric_df = df_num.select_dtypes(include=["float64", "int64", "bool"])
@@ -48,33 +56,35 @@ class FeatureAnalysis:
             "spearman": spearman_corr,
             "kendall": kendall_corr
         }
+
     
     @staticmethod
     def plot_correlation_heatmaps(corrs_dict, figsize=(30, 10), annot_size=12):
-        '''
-        Plot correlation heatmaps from the dict returned by check_correlations().
-
+        """
+        Visualize correlation matrices as heatmaps.
+    
+        Plots Pearson, Spearman, and Kendall correlation matrices returned
+        by check_correlations() using seaborn heatmaps.
+    
         Parameters
         ----------
-        corrs_dict : dict
-            Dictionary with correlation matrices:
-            {
-                "pearson": pd.DataFrame,
-                "spearman": pd.DataFrame,
-                "kendall": pd.DataFrame
-            }
-
-        figsize : tuple, optional
-            Size of the figure (default=(30, 10)).
-
-        annot_size : int, optional
-            Font size for correlation values (default=12).
-        
+        corrs_dict : dict[str, pandas.DataFrame]
+            Correlation matrices with keys 'pearson', 'spearman', and 'kendall'.
+        figsize : tuple, default=(30, 10)
+            Figure size.
+        annot_size : int, default=12
+            Font size for correlation value annotations.
+    
         Returns
         -------
         None
-            Displays correlation heatmaps using matplotlib/seaborn.
-        '''
+            Displays the heatmaps.
+        
+        Examples
+        --------
+        >>> corrs = check_correlations(df)
+        >>> plot_correlation_heatmaps(corrs)
+        """
 
         corr_matrices = [
         ("Pearson Correlation", corrs_dict.get("pearson")),
@@ -100,22 +110,32 @@ class FeatureAnalysis:
         plt.tight_layout()
         plt.show()
 
+    
     @staticmethod
     def cramers_v_matrix(df: pd.DataFrame, show_plot: bool = True):
         """
-        Compute a pairwise Cramér’s V matrix for categorical and boolean columns.
-
+        Compute a Cramér’s V association matrix for categorical features.
+    
+        Calculates pairwise Cramér’s V statistics for categorical and boolean
+        columns to measure the strength of association between features.
+        Optionally visualizes the result as a heatmap.
+    
         Parameters
         ----------
-        df : DataFrame
+        df : pandas.DataFrame
             Input dataset; only categorical and boolean columns are used.
         show_plot : bool, default=True
-            Whether to display a heatmap.
-
+            Whether to display the association heatmap.
+    
         Returns
         -------
-        DataFrame
-            Symmetric matrix of Cramérs V values.
+        pandas.DataFrame
+            Symmetric matrix of Cramér’s V values.
+    
+        Examples
+        --------
+        >>> V = cramers_v_matrix(df)
+        >>> V.loc["gender", "country"]
         """
 
         df_cat = df.select_dtypes(include=["object", "category", "bool"]).copy()
@@ -161,43 +181,45 @@ class FeatureAnalysis:
         use_kendall: bool = False,
         return_pairwise: bool = True
     ):
+        :
         """
-        Compute feature overlap scores.
-
-        Overlap definition:
-        - numeric + numeric - |Spearman| (Pearson / Kendall optional)
-        - categorical + categorical - Cramér’s V
-        - numeric + categorical - Correlation Ratio (η²)
-
-        How to interpret results:
-        - overlap_score ∈ [0, 1]
-        - lower overlap_score - feature is more unique (better)
-        - higher overlap_score - feature is redundant (duplicates other features)
-        - overlap_score is computed as mean of top-k strongest overlaps per feature
-
+        Compute feature overlap scores to estimate redundancy between features.
+    
+        Measures pairwise feature overlap using:
+        - numeric–numeric: |Spearman| (optionally Pearson / Kendall)
+        - categorical–categorical: Cramér’s V
+        - numeric–categorical: correlation ratio (η²)
+    
+        Per-feature overlap is defined as the mean of the top-k strongest
+        pairwise overlaps; higher values indicate higher redundancy.
+    
         Parameters
         ----------
-        df : pd.DataFrame
-            Dataset with features only (no target).
+        df : pandas.DataFrame
+            Dataset containing feature columns only.
         top_k : int, default=3
-            Number of strongest overlaps used to aggregate feature score.
+            Number of strongest overlaps aggregated per feature.
         use_pearson : bool, default=False
-            Whether to include Pearson correlation for numeric-numeric pairs.
+            Include Pearson correlation for numeric-numeric pairs.
         use_kendall : bool, default=False
-            Whether to include Kendall tau for numeric-numeric pairs.
+            Include Kendall tau for numeric-numeric pairs.
         return_pairwise : bool, default=True
-            Whether to return pairwise overlap table.
-
+            Whether to return the full pairwise overlap table.
+    
         Returns
         -------
         dict
             {
-            "feature_overlap": pd.DataFrame,
-            "pairwise_overlap": pd.DataFrame | None
+                "feature_overlap": pandas.DataFrame,
+                "pairwise_overlap": pandas.DataFrame | None
             }
+    
+        Examples
+        --------
+        >>> res = compute_overlap(df)
+        >>> res["feature_overlap"].head()
         """
-
-        # ---------- helper functions ----------
+        # helpers
 
         def cramers_v(x, y):
 
@@ -269,17 +291,19 @@ class FeatureAnalysis:
                     if use_kendall:
                         overlap = max(overlap, abs(kendalltau(x, y)[0]))
                     pair_type = "numeric-numeric"
+                    
                 elif not x_is_num and not y_is_num:
                     overlap = cramers_v(x, y)
                     pair_type = "categorical-categorical"
+                    
                 else:
                     if x_is_num:
                         overlap = correlation_ratio(y, x)
                     else:
                         overlap = correlation_ratio(x, y)
-
                     pair_type = "numeric-categorical"
 
+                
                 rows.append({
                 "feature_a": f1,
                 "feature_b": f2,
@@ -287,13 +311,16 @@ class FeatureAnalysis:
                 "overlap_score": overlap
             })
 
+        
         pairwise_df = pd.DataFrame(rows)
 
         feature_rows = []
         for feature in features:
             scores_as_a = pairwise_df.loc[pairwise_df["feature_a"] == feature, "overlap_score"]
             scores_as_b = pairwise_df.loc[pairwise_df["feature_b"] == feature, "overlap_score"]
+            
             all_scores = pd.concat([scores_as_a, scores_as_b])
+            
             strongest_scores = all_scores.sort_values(ascending=False).head(top_k)
 
             if len(strongest_scores) == 0:
@@ -325,38 +352,43 @@ class FeatureAnalysis:
         run_permutation: bool = True,
         n_permutations: int = 300
     ):
-        """
-        Compute feature–target separability scores with an optional permutation test.
+        
+) -> pd.DataFrame:
+    """
+    Compute feature–target separability scores with optional permutation testing.
 
-        For each feature in `X`, the function selects an appropriate association
-        measure based on feature/target types:
-        - numeric–numeric: absolute Spearman correlation
-        - categorical–numeric: correlation ratio (η²)
-        - categorical–categorical: Cramér’s V
+    For each feature, selects an association measure based on feature/target types:
+    - numeric–numeric: |Spearman|
+    - categorical–numeric: correlation ratio (η²)
+    - categorical–categorical: Cramér’s V
 
-        Optionally performs a permutation test to estimate the significance of
-        each separability score.
+    Optionally estimates statistical significance via a permutation test.
 
-        Parameters
-        ----------
-        X : pandas.DataFrame
-            Feature matrix.
-        y : pandas.Series
-            Target variable.
-        run_permutation : bool, optional
-            Whether to compute permutation-based p-values.
-        n_permutations : int, optional
-            Number of permutations used to estimate p-values.
+    Parameters
+    ----------
+    X : pandas.DataFrame
+        Feature matrix.
+    y : pandas.Series
+        Target variable.
+    run_permutation : bool, default=True
+        Whether to compute permutation-based p-values.
+    n_permutations : int, default=300
+        Number of permutations used for p-value estimation.
 
-        Returns
-        -------
-        pandas.DataFrame
-            Ranked table with columns:
-            - feature
-            - separability_score
-            - perm_p_value (if `run_permutation=True`)
-        """
+    Returns
+    -------
+    pandas.DataFrame
+        Ranked feature table with:
+        - feature
+        - separability_score
+        - perm_p_value (if run_permutation=True)
 
+    Examples
+    --------
+    >>> compute_separability(X, y)
+    >>> compute_separability(X, y, run_permutation=False)
+    """
+    
         # helpers 
 
         def cramers_v(x, y):
@@ -441,33 +473,34 @@ class FeatureAnalysis:
     @staticmethod
     def compute_impact(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         """
-        Compute statistical impact (effect size) of each feature on the target variable.
-
-        For every feature in `X`, the function automatically selects an appropriate
-        effect size metric and statistical test based on feature and target types:
-
-        - numeric–numeric: |Spearman correlation|
-        - numeric–categorical or categorical–numeric:
-        η² (correlation ratio) + Kruskal–Wallis test
-        - categorical–categorical:
-        Cramér’s V + chi-square test
-
+        Estimate statistical impact (effect size) of each feature on the target.
+    
+        Automatically selects an appropriate effect size metric and statistical
+        test based on feature–target types:
+        - numeric–numeric: |Spearman| correlation
+        - numeric–categorical or categorical–numeric: η² + Kruskal–Wallis test
+        - categorical–categorical: Cramér’s V + chi-square test
+    
         Parameters
         ----------
         X : pandas.DataFrame
             Feature matrix.
         y : pandas.Series
             Target variable.
-
+    
         Returns
         -------
         pandas.DataFrame
-            Table sorted by decreasing impact with columns:
-            - feature : feature name
-            - impact_score : effect size (strength of association)
-            - impact_metric : metric used to compute the effect size
-            - test : statistical test applied
-            - p_value : p-value of the corresponding test
+            Feature-level impact table sorted by decreasing impact with:
+            - feature
+            - impact_score
+            - impact_metric
+            - test
+            - p_value
+    
+        Examples
+        --------
+        >>> compute_impact(X, y)
         """
 
         results = []
@@ -586,34 +619,43 @@ class FeatureAnalysis:
         weights=None,
         top_k_overlap: int = 3
     ):
+        
+) -> pd.DataFrame:
         """
-        Compute a composite feature quality score based on separability, impact, and overlap.
-
-        The final score prioritizes features that:
-        - are strongly associated with the target (separability),
-        - have a large statistical effect size (impact),
-        - provide non-redundant information (low overlap with other features).
-
+        Compute a composite feature quality score.
+    
+        Ranks features by combining three complementary signals:
+        - separability: strength of association with the target,
+        - impact: statistical effect size,
+        - overlap: redundancy with other features.
+    
+        The final score favors features with high signal and low redundancy.
+    
         Parameters
         ----------
         X : pandas.DataFrame
             Feature matrix.
         y : pandas.Series
             Target variable.
-        weights : dict, optional
+        weights : dict or None, default=None
             Exponents controlling the contribution of each component:
-            {"separability", "impact", "overlap"}.
-        top_k_overlap : int, optional
-            Number of strongest overlaps used to compute mean feature redundancy.
-
+            {'separability', 'impact', 'overlap'}.
+        top_k_overlap : int, default=3
+            Number of strongest overlaps used to estimate feature redundancy.
+    
         Returns
         -------
         pandas.DataFrame
-            Features ranked by decreasing quality with columns:
+            Features ranked by decreasing quality with:
             - separability_score
             - impact_score
             - overlap_score
             - final_score
+    
+        Examples
+        --------
+        >>> compute_feature_quality(X, y)
+        >>> compute_feature_quality(X, y, weights={"separability": 2, "impact": 1, "overlap": 1})
         """
 
         if weights is None:
