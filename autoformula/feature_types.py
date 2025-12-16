@@ -36,13 +36,6 @@ class FeatureTypeDetection:
             - 'pandas_dtype' : technical dtype from pandas
             - 'detected_type' : inferred semantic type
 
-        Examples
-        --------
-        >>> feature_types = detect_feature_types(df)
-        >>> feature_types.head()
-    
-        >>> detect_feature_types(df, detect_mixed=True).query("mixed_type")
-
         '''
 
         def find_mixed_type_columns(df):
@@ -129,30 +122,23 @@ class FeatureTypeDetection:
     @staticmethod
     def type_mismatch(types_df):
         """
-    Return columns where pandas dtypes conflict with detected semantic types.
+        Return columns where pandas dtypes conflict with detected semantic types.
 
-    Checks:
-    - object dtype but semantic type ≠ 'text'
-    - numeric dtype but semantic type == 'categorical'
+        Checks:
+        - object dtype but semantic type ≠ 'text'
+        - numeric dtype but semantic type == 'categorical'
 
-    Parameters
-    ----------
-    types_df : DataFrame
-        Output of detect_feature_types(), must contain
-        ['column', 'pandas_dtype', 'detected_type'].
+        Parameters
+        ----------
+        types_df : DataFrame
+            Output of detect_feature_types(), must contain
+            ['column', 'pandas_dtype', 'detected_type'].
 
-    Returns
-    -------
-    DataFrame
-        Subset of columns with dtype–semantic mismatches (includes mixed_type if present).
-
-    Examples
-    --------
-    >>> types = detect_feature_types(df, detect_mixed=True)
-    >>> type_mismatch(types)
-
-    >>> type_mismatch(types).query("detected_type == 'categorical'")
-    """
+        Returns
+        -------
+        DataFrame
+            Subset of columns with dtype–semantic mismatches (includes mixed_type if present).
+        """
 
 
         required_cols = {"pandas_dtype", "detected_type"}
@@ -175,12 +161,12 @@ class FeatureTypeDetection:
         return mismatched[display_cols]
 
     @staticmethod
-    def handle_selected_columns(
+    def handle_selected_missmatch(
         df: pd.DataFrame,
         types_df: pd.DataFrame,
         selected: list[str],
         numeric_threshold: float = 0.6
-    ) -> pd.DataFrame:
+        ) -> pd.DataFrame:
         """
         Convert only selected columns to their semantic types, including mixed-type handling.
 
@@ -199,15 +185,6 @@ class FeatureTypeDetection:
         Returns
         -------
         DataFrame — copy of df with applied conversions.
-
-        Examples
-        --------
-        >>> types = detect_feature_types(df, detect_mixed=True)
-        >>> df_clean = handle_selected_columns(
-        ...     df,
-        ...     types_df=types,
-        ...     selected=["age", "gender", "income"]
-        ... )
         """
 
 
@@ -270,7 +247,6 @@ class FeatureTypeDetection:
                 print(f"Error converting '{col}': {e}")
 
         return df_out
-
     
     @staticmethod
     def feature_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -292,12 +268,7 @@ class FeatureTypeDetection:
             - is_constant : True if all values are identical
             - dominant_ratio : share of the most frequent value
             - dominant_value : the most frequent value itself
-        Examples
-        --------
-        >>> summary = feature_summary(df)
-        >>> summary.loc["age"]
-    
-        >>> summary.query("missing_rate > 0.2")
+
         '''
 
         if df.empty:
@@ -327,3 +298,5 @@ class FeatureTypeDetection:
 
         return pd.DataFrame(rows).set_index("feature")
 
+    
+    
