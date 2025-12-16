@@ -1,5 +1,5 @@
-Special Programming Languages
 # AutoFormula: library for feature engineering
+Спеціальні мови програмування
 Манько Софія, Головач Лук'яна
 
 Goal:
