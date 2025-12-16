@@ -31,12 +31,6 @@ class FeatureAnalysis:
         -------
         dict[str, pandas.DataFrame]
             Correlation matrices: {"pearson", "spearman", "kendall"}.
-        
-        Examples
-        --------
-        >>> corrs = check_correlations(df)
-        >>> corrs["pearson"].loc["age", "income"]
-        0.42
         """
 
         numeric_df = df_num.select_dtypes(include=["float64", "int64", "bool"])
@@ -54,8 +48,6 @@ class FeatureAnalysis:
             "spearman": spearman_corr,
             "kendall": kendall_corr
         }
-
-
     
     @staticmethod
     def plot_correlation_heatmaps(corrs_dict, figsize=(30, 10), annot_size=12):
@@ -82,12 +74,6 @@ class FeatureAnalysis:
         -------
         None
             Displays correlation heatmaps using matplotlib/seaborn.
-
-        Examples
-        --------
-        >>> corrs = check_correlations(df)
-        >>> plot_correlation_heatmaps(corrs, figsize=(20, 6), annot_size=10)
-
         '''
 
         corr_matrices = [
@@ -114,8 +100,6 @@ class FeatureAnalysis:
         plt.tight_layout()
         plt.show()
 
-
-    
     @staticmethod
     def cramers_v_matrix(df: pd.DataFrame, show_plot: bool = True):
         """
@@ -132,15 +116,6 @@ class FeatureAnalysis:
         -------
         DataFrame
             Symmetric matrix of Cramérs V values.
-
-        Examples
-        --------
-        >>> V = cramers_v_matrix(df)
-        >>> V.loc["gender", "country"]
-        0.27
-        >>>
-        >>> cramers_v_matrix(df, show_plot=False)
-        
         """
 
         df_cat = df.select_dtypes(include=["object", "category", "bool"]).copy()
@@ -220,20 +195,9 @@ class FeatureAnalysis:
             "feature_overlap": pd.DataFrame,
             "pairwise_overlap": pd.DataFrame | None
             }
-
-        Examples
-        --------
-        >>> # Compute feature-level overlap scores
-        >>> result = compute_overlap(df, top_k=3)
-        >>> result["feature_overlap"].head()
-        
-        >>> # Skip returning the full pairwise overlap table
-        >>> result = compute_overlap(df, return_pairwise=False)
-        >>> result["pairwise_overlap"]
-        None
         """
 
-        #helper functions
+        # ---------- helper functions ----------
 
         def cramers_v(x, y):
 
@@ -254,11 +218,14 @@ class FeatureAnalysis:
 
             categories = pd.Categorical(categories)
             values = np.asarray(values, dtype=float)
+
             overall_mean = np.nanmean(values)
+
             explained_variance = 0.0
 
             for category in categories.categories:
                 group_values = values[categories == category]
+
                 if len(group_values) == 0:
                     continue
 
@@ -290,7 +257,13 @@ class FeatureAnalysis:
                 y_is_num = pd.api.types.is_numeric_dtype(y)
 
                 if x_is_num and y_is_num:
-                    overlap = abs(spearmanr(x, y, nan_policy="omit")[0])
+                    x_num = pd.to_numeric(x, errors="coerce").to_numpy(dtype=float)
+                    y_num = pd.to_numeric(y, errors="coerce").to_numpy(dtype=float)
+
+                    if np.nanstd(x_num) == 0 or np.nanstd(y_num) == 0:
+                        overlap = 0.0
+                    else:
+                        overlap = abs(spearmanr(x_num, y_num, nan_policy="omit")[0])
                     if use_pearson:
                         overlap = max(overlap, abs(pearsonr(x, y)[0]))
                     if use_kendall:
@@ -344,6 +317,7 @@ class FeatureAnalysis:
         }
 
 
+
     @staticmethod
     def compute_separability(
         X: pd.DataFrame,
@@ -381,15 +355,6 @@ class FeatureAnalysis:
             - feature
             - separability_score
             - perm_p_value (if `run_permutation=True`)
-
-        Examples
-        --------
-        >>> sep = compute_separability(X, y)
-        >>> sep.head()
-    
-        >>> sep = compute_separability(X, y, run_permutation=False)
-        >>> sep.columns
-        Index(['feature', 'separability_score'], dtype='object')
         """
 
         # helpers 
@@ -503,17 +468,14 @@ class FeatureAnalysis:
             - impact_metric : metric used to compute the effect size
             - test : statistical test applied
             - p_value : p-value of the corresponding test
-
-        Examples
-        --------
-        >>> impact = compute_impact(X, y)
-        >>> impact.head()
-    
-        >>> impact.loc[0, ["feature", "impact_score", "impact_metric"]]
-    
         """
 
         results = []
+
+        # вrop NA target values (for variance-based statistics)
+        mask = y.notna()
+        X = X.loc[mask]
+        y = y.loc[mask]
 
         for feature in X.columns:
             x = X[feature]
@@ -533,6 +495,7 @@ class FeatureAnalysis:
             elif x_is_num and not y_is_num:
                 categories = pd.Categorical(y)
                 values = x.astype(float)
+                values = values.dropna()
 
                 mean_total = values.mean()
                 ss_between = 0.0
@@ -544,8 +507,15 @@ class FeatureAnalysis:
                 ss_total = ((values - mean_total) ** 2).sum()
                 impact = ss_between / ss_total if ss_total > 0 else 0.0
 
-                groups = [x[y == cat] for cat in categories.categories]
-                _, p = kruskal(*groups)
+                groups = []
+
+                for cat in categories.categories:
+                    group = x[y == cat].dropna()
+                    if len(group) > 0:
+                        groups.append(group)
+
+                p = kruskal(*groups).pvalue if len(groups) > 1 else np.nan
+
 
                 metric = "eta_squared"
                 test = "kruskal"
@@ -554,6 +524,7 @@ class FeatureAnalysis:
             elif not x_is_num and y_is_num:
                 categories = pd.Categorical(x)
                 values = y.astype(float)
+                values = values.dropna()
 
                 mean_total = values.mean()
                 ss_between = 0.0
@@ -565,8 +536,15 @@ class FeatureAnalysis:
                 ss_total = ((values - mean_total) ** 2).sum()
                 impact = ss_between / ss_total if ss_total > 0 else 0.0
 
-                groups = [y[x == cat] for cat in categories.categories]
-                _, p = kruskal(*groups)
+                groups = []
+
+                for cat in categories.categories:
+                    group = y[x == cat].dropna()
+                    if len(group) > 0:
+                        groups.append(group)
+
+                p = kruskal(*groups).pvalue if len(groups) > 1 else np.nan
+
 
                 metric = "eta_squared"
                 test = "kruskal"
@@ -636,14 +614,6 @@ class FeatureAnalysis:
             - impact_score
             - overlap_score
             - final_score
-
-        Examples
-        --------
-        >>> quality = compute_feature_quality(X, y)
-        >>> quality.head()
-    
-        >>> weights = {"separability": 2.0, "impact": 1.0, "overlap": 0.5}
-        >>> quality = compute_feature_quality(X, y, weights=weights)
         """
 
         if weights is None:
