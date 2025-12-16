@@ -39,14 +39,6 @@ class FeatureMixing:
         pandas.DataFrame
             Extended DataFrame containing the original features and newly generated
             feature combinations.
-
-        Examples
-        --------
-        >>> df_ext = generate_feature_combinations(df, max_pairs=10)
-        >>> df_ext.shape[1] > df.shape[1]
-        True
-    
-        >>> df_ext.filter(like="log_").head()
         """
         np.random.seed(random_state)
 
@@ -141,7 +133,7 @@ class FeatureMixing:
 
         num_features = [c for c in df.columns if is_numeric_dtype(df[c])]
 
-        # unary 
+        # ---------- unary ----------
         if unary_ops:
             for col in num_features:
                 x = df[col]
@@ -149,9 +141,9 @@ class FeatureMixing:
                     try:
                         new_features[f"{name}_{col}"] = func(x)
                     except Exception:
-                        continue  
+                        continue  # safe skip
 
-        # binary 
+        # ---------- binary ----------
         if binary_ops:
             pairs = list(combinations(num_features, 2))
             np.random.shuffle(pairs)
